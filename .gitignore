@@ -1,0 +1,38 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+
+# Your roadmap data. Keep it in a PRIVATE repo, never in this public one.
+data.json
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local secrets
+.env
+.env.local
+.env.*.local
+
+# Timestamped local snapshots of data.json
+backups/
+
+# Local Claude Code tooling state
+.claude/settings.local.json

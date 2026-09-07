@@ -1,0 +1,195 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button {
+  all: unset;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+/* Tab content transitions */
+.tab-content-enter {
+  animation: fadeSlideIn 0.25s ease-out;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Item card pop-in */
+.item-enter {
+  animation: itemPop 0.2s ease-out;
+}
+
+@keyframes itemPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Modal entrance */
+.modal-backdrop {
+  animation: backdropIn 0.15s ease-out;
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  animation: modalIn 0.2s ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Scratch item pop-in */
+.scratch-item-enter {
+  animation: scratchPop 0.2s ease-out;
+}
+
+@keyframes scratchPop {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ---------------------------------------------------------------
+   Mobile / installed-app support
+   --------------------------------------------------------------- */
+
+html, body {
+  /* The board scrolls sideways in its own container; the page itself must
+     never do so, or the whole layout drifts under your thumb. */
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+body {
+  /* Keeps content clear of the notch and the home indicator when installed. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Board: masonry columns on desktop, swipeable columns on a phone.
+   A CSS grid aligns every card in a row to the tallest one, which leaves
+   ragged vertical gaps under the short tracks. Multi-column layout packs
+   each card directly beneath the one above it instead. */
+.board-grid {
+  column-count: 5;
+  column-gap: 10px;
+  width: 100%;
+}
+
+.board-grid > * {
+  /* Never let a track card be split across two columns. */
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  /* column-gap only spaces columns; vertical spacing is the card's own. */
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
+  .board-grid { column-count: 3; }
+}
+
+@media (max-width: 900px) {
+  .board-grid { column-count: 2; }
+}
+
+@media (max-width: 640px) {
+  .board-grid {
+    /* Multi-column does not apply to flex containers, but reset it anyway
+       so the swipeable row can never inherit a column count. */
+    column-count: auto;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Bleed to the screen edges so a snapped column sits centred. */
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+  .board-grid::-webkit-scrollbar { display: none; }
+
+  .board-grid > * {
+    flex: 0 0 84vw;
+    scroll-snap-align: center;
+    margin-bottom: 0;
+  }
+}
+
+/* Comfortable touch targets without changing the desktop look. */
+@media (pointer: coarse) {
+  button, select, input, .item-card {
+    touch-action: manipulation;
+  }
+  select, input {
+    /* iOS zooms the page when a focused field is under 16px. */
+    font-size: 16px !important;
+  }
+}
+
+/* An item being dragged must not also scroll the column under it. */
+.item-card {
+  touch-action: manipulation;
+}
+
+/* Installed app: no text selection lag on long-press. */
+@media (display-mode: standalone) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
