@@ -36,3 +36,9 @@ backups/
 
 # Local Claude Code tooling state
 .claude/settings.local.json
+
+# Local environment and tooling artifacts
+.env.*
+!.env.example
+__pycache__/
+*.pyc

@@ -1,135 +1,120 @@
-# Roadmap
+# Roadmap · Personal Planning Board
 
-A personal roadmap board you host yourself. Tracks, phases, drag-and-drop,
-statuses, filters, undo/redo and a scratch pad — installable on a phone as a
-web app, and it works offline.
+**A self-hosted planning app with drag-and-drop tracks, offline edits, and GitHub-backed version history.**
 
-Your data lives in a `data.json` in **your own private GitHub repo**, written
-through the GitHub API. Every edit becomes a commit, so you get full version
-history and can roll back to any point. No database to run, no third-party
-service holding your notes.
+Organize goals into tracks and phases, track progress, and capture ideas in a scratch pad. The app works with a local JSON file during development and can save to a private GitHub repository when deployed.
 
-## Why it's built this way
+**Stack:** React · JavaScript · Vite · dnd-kit · Progressive Web App · GitHub Contents API
 
-Most self-hosted boards need a database. This one doesn't, because a personal
-roadmap is small and single-user — a JSON file is genuinely enough. Putting
-that file in a git repo gets you durability, history and backups for free, and
-means the storage bill is zero.
+## What it demonstrates
 
-The trade-off: writes are one commit each, so they're debounced and there's no
-multi-user conflict resolution. If two devices edit while one is offline, the
-later sync wins. Fine for one person; not a team tool.
+- **Interactive planning:** draggable items, editable tracks and phases, status filters, due dates, and notes.
+- **State management:** undo/redo, keyboard shortcuts, search, and a categorized scratch pad.
+- **Offline behavior:** a cached app shell and browser-local data let an already-loaded board open offline and queue edits for reconnection.
+- **Versioned persistence:** each successful debounced save to GitHub creates a commit in a separate data repository.
+- **Access control:** a shared passcode gates the API when configured, with server-side GitHub credentials.
+- **Storage diagnostics:** the app reports configuration and connection problems instead of silently replacing saved data.
 
-## Features
+## Why use GitHub for storage?
 
-- Tracks and phases you define yourself, editable in the app
-- Drag and drop items between tracks, and reorder within one
-- Statuses (todo / in progress / done / blocked), due dates, notes
-- Search and filter by phase, track and status
-- Undo/redo, including keyboard shortcuts
-- Scratch pad with its own categories
-- Light and dark themes
-- Installable as a phone app; opens and works offline, syncing when you return
-- Passcode-gated so a public URL isn't a public roadmap
+A single person's roadmap is small enough to store as JSON. The GitHub Contents API provides a version history without running a separate database. Local development uses the same storage interface with a file on disk.
 
-## Quick start
+The tradeoff is write latency and commit volume. Saves are debounced, and concurrent/offline edits do not receive a multi-user merge: a later save can replace another device's changes. This is a personal tool.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    UI[React board] <--> CACHE[Browser cache + pending edits]
+    UI -->|Passcode header| API[Data API]
+    API --> AUTH[Passcode check]
+    AUTH --> STORE[Shared storage module]
+    STORE --> LOCAL[Local data.json]
+    STORE --> GITHUB[Private GitHub data repository]
 ```
-git clone https://github.com/YOUR-USERNAME/roadmap.git
-cd roadmap
-npm install
+
+**Start reading:** [board and save lifecycle](src/App.jsx) · [client cache and API](src/api.js) · [storage implementation](lib/store.js) · [serverless endpoint](api/data.js)
+
+## Run locally
+
+Use Node.js 22.12+ and npm:
+
+```sh
+git clone https://github.com/alimleahat/personal-roadmap-organization-tool.git
+cd personal-roadmap-organization-tool
+npm ci
 npm run dev
 ```
 
-That runs against a local `data.json` file, with no GitHub or passcode needed.
-Edit `src/config.js` to change the name in the header, and use **Settings** in
-the app to set up your own tracks and phases.
+Open `http://localhost:5173`. With no GitHub environment variables or passcode configured, the development API uses a local `data.json` file. That file is ignored by Git.
 
-## Deploying
+Edit [`src/config.js`](src/config.js) for the header name and period. Use **Settings** in the app to configure tracks and phases. Built-in sample content lives in [`src/constants.js`](src/constants.js).
 
-You need two things: somewhere to host it, and a private repo to hold your data.
+## Deploy with private GitHub storage
 
-### 1. A private repo for your data
+### 1. Prepare a data repository
 
-Create an empty **private** repo — for example `my-roadmap-data`. This is
-where your roadmap gets committed.
+Create a separate **private** repository for your roadmap data, with an initialized default branch, such as `main`. Keep personal `data.json` out of this public source repository.
 
-> Do not use a public repo, and do not commit `data.json` into your fork of
-> this project. Anything committed to a public repo stays in its history even
-> after you delete it.
+### 2. Create a scoped token
 
-### 2. A GitHub token
+Create a fine-grained GitHub token with access to that data repository and **Contents: read and write**. The token must explicitly include the private repository; public-only access will not work.
 
-Create a fine-grained token at
-<https://github.com/settings/personal-access-tokens/new>:
+### 3. Configure the deployment
 
-- **Repository access:** Only select repositories → your data repo
-- **Permissions:** Repository permissions → **Contents: Read and write**
+Import this source repository into Vercel. The included [`vercel.json`](vercel.json) configures the Vite build and API routing. Set these server-side environment variables:
 
-> Fine-grained tokens default to *Public Repositories* only. Leave that default
-> with a private data repo and the token will authenticate but not see the
-> repo, giving a confusing 404. Select the repo explicitly.
+- `GITHUB_TOKEN`: the scoped data-repository token.
+- `GITHUB_OWNER`: your GitHub username or organization.
+- `GITHUB_REPO`: the private data repository name.
+- `GITHUB_BRANCH`: its initialized default branch.
+- `ROADMAP_PASSCODE`: a separate, strong passcode for this app.
+- `DATA_PATH`: optional repository file path; defaults to `data.json`.
 
-### 3. Deploy
+**Set `ROADMAP_PASSCODE` before exposing a deployment.** The current code permits requests when it is unset, including on a deployed server. This is a configuration requirement, not an automatically enforced production check.
 
-Import the repo at <https://vercel.com/new> — the Vite preset and the included
-`vercel.json` handle the build. Then set these environment variables:
+Redeploy after changing environment variables. See [`.env.example`](.env.example) for the same settings in local development. GitHub credentials belong on the server, never in a `VITE_` variable.
 
-| Variable | Value |
-|---|---|
-| `GITHUB_TOKEN` | the token from step 2 |
-| `GITHUB_OWNER` | your GitHub username |
-| `GITHUB_REPO` | your data repo, e.g. `my-roadmap-data` |
-| `GITHUB_BRANCH` | that repo's default branch (`main` or `master`) |
-| `ROADMAP_PASSCODE` | a random string you choose |
+The included deployment configuration targets Vercel. Other hosts need an adapter for the API handler and persistent GitHub storage; a static-only host does not provide `/api/data`.
 
-**`ROADMAP_PASSCODE` is required in production.** A deployed URL is public;
-without it, anyone who finds the URL can read and edit your roadmap.
+### 4. Install as an app
 
-Vercel only applies environment variables to *new* deployments, so redeploy
-after adding them.
+After loading the deployed HTTPS site, use **Add to Home Screen** in iOS Safari or **Install app** in a supported Android browser. Offline installation and caching apply to the production PWA build; the Vite development server does not enable the service worker.
 
-Any host that runs a Node serverless function works — the API is a single
-handler in `api/data.js`.
+## Data handling
 
-### 4. Install on your phone
+- Opening the page does not itself trigger a save.
+- Failed loads with no usable cache disable editing instead of overwriting remote data.
+- Pending offline edits are stored in the browser and retried on reconnect.
+- Each successful remote save appears in your data repository's commit history.
+- `npm run backup` copies the **local** `data.json` to a timestamped file in `backups/`. It does not fetch a remote GitHub backup.
 
-- **iOS (Safari):** Share → Add to Home Screen
-- **Android (Chrome):** menu → Install app
+Browser-local data remains on the device. The passcode protects API requests; it does not encrypt saved roadmap content.
 
-## If something goes wrong
+## Build and checks
 
-The app tells you rather than failing silently. If it can't load your data it
-shows the reason and a **Check settings** button, which reports which of the
-storage settings the server can actually see — presence and shape only, never
-your token. It probes the token, then the repo, then the file, so the first
-failure names the real culprit.
+```sh
+npm run build
+npm run lint
+```
 
-## How your data is protected
+The production build passes and generates the PWA assets. The existing lint command currently reports state synchronization issues in `App.jsx` and `DetailModal.jsx`, plus an unused parameter in `SettingsModal.jsx`; these are documented follow-up work. No automated application test suite is configured.
 
-Losing a roadmap to a sync bug would be worse than any missing feature, so:
+`npm run preview` previews the built frontend only. The development data middleware runs with `npm run dev`; a complete production instance needs the deployed API.
 
-- **A failed load never overwrites good data.** With no successful load and no
-  local cache, the app shows the sample content, disables editing and says why.
-- **Saves require an actual edit.** Opening the page never triggers a write.
-- **An empty server response is treated as an error** when the device holds a
-  saved copy, rather than as a fresh start to overwrite.
-- **Offline edits are queued to disk** and flushed on reconnect.
-- **`npm run backup`** writes a timestamped copy into `backups/`.
+## Repository layout
 
-## Configuration
-
-| File | What it holds |
-|---|---|
-| `src/config.js` | the name and period in the header |
-| `src/constants.js` | default tracks, phases and sample content |
-| `.env.example` | every environment variable, documented |
-
-## Tech
-
-React 19, Vite 7, dnd-kit for drag and drop, vite-plugin-pwa for the installable
-app. No backend beyond a single serverless function.
+```text
+src/components/    Board cards, filters, dialogs, scratch pad, and settings
+src/App.jsx        Board state, interaction, undo/redo, and save lifecycle
+src/api.js         Browser cache, pending edits, and API requests
+lib/               Shared storage and passcode logic
+api/data.js        Vercel serverless endpoint
+public/            App icons and static assets
+vite.config.js     Local API middleware and PWA configuration
+.env.example       Documented server environment variables
+```
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE) · Ali Mleahat
