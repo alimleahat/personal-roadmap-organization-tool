@@ -114,7 +114,3 @@ public/            App icons and static assets
 vite.config.js     Local API middleware and PWA configuration
 .env.example       Documented server environment variables
 ```
-
-## License
-
-[MIT](LICENSE) · Ali Mleahat
